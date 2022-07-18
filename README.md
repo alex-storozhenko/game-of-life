@@ -12,6 +12,8 @@ __Rules of generation__:
  4. Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
  
  ## Usage:
+ Please make sure that the PHP interpreter is installed in your OS. 
+ 
  Download files and just run:
  
  > ``php GameOfLife``
