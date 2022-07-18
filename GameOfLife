@@ -144,7 +144,6 @@ function draw(array $field): void
     for ($i = 0; $i < $height; $i++) {
         $width = count($field[$i]);
 
-
         for ($j = 0; $j < $width; $j++) {
             $marker = empty($field[$i][$j]) ? $diedMarker : $liveMarker;
 
