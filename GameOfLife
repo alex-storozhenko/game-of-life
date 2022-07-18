@@ -1,0 +1,195 @@
+#!/usr/bin/env php
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Basic Game Mechanics
+|--------------------------------------------------------------------------
+|
+| Create game field 25x25 slots
+| Apply zero generation according some pattern of live cells (Main Storage)
+| Fill the game field
+| Draw the field based on the state of the main storage
+| Make a new generation (clone main storage for new generation)
+| Apply generation changes(replace main storage state of temp storage state)
+| Draw the field
+|
+| Rules of cell live or dead:
+|  Any live cell with fewer than two live neighbors dies as if caused by underpopulation.
+|  Any live cell with two or three live neighbors lives on to the next generation.
+|  Any live cell with more than three live neighbors dies, as if by overcrowding.
+|  Any dead cell with exactly three live neighbors becomes a live cell, as if by reproduction.
+|
+| Describe rules in simple "if statements" way:
+|   Live (1) cell:
+|       if have < 2 live neighbors
+|               or
+|               > 3 live neighbors
+|               change state to died (0)
+|   Died (0) cell:
+|      if have === 3 live neighbors
+|           change state to life (1)
+|
+*/
+
+const GAME_FIELD_SIZE = 25;
+
+function randomZeroGeneration(): array
+{
+    $field = array_fill(0, GAME_FIELD_SIZE, []);
+
+    return array_map(function () {
+        $rows = [];
+
+        for ($i = GAME_FIELD_SIZE; $i > 0; $i--) {
+            $value = random_int(0, 1);
+            $rows[] = $value;
+        }
+
+        return $rows;
+    }, $field);
+}
+
+function gliderZeroGeneration(): array
+{
+    // Generate empty field
+    $field = array_fill(0, GAME_FIELD_SIZE, []);
+    $field = array_map(function () {
+        return array_fill(0, GAME_FIELD_SIZE, 0);
+    }, $field);
+
+    $center = intval(GAME_FIELD_SIZE / 2);
+
+    // Draw glider
+    $field[$center][$center] = 1;
+    $field[$center][$center + 1] = 1;
+    $field[$center][$center - 1] = 1;
+    $field[$center - 1][$center + 1] = 1;
+    $field[$center - 2][$center] = 1;
+
+    return $field;
+}
+
+function nextGeneration($currentGeneration): array
+{
+    $nextGeneration = [];
+    $height = count($currentGeneration);
+
+    for ($i = 0; $i < $height; $i++) {
+        $width = count($currentGeneration[$i]);
+
+        for ($j = 0; $j < $width; $j++) {
+            $currentCell = $currentGeneration[$i][$j];
+            $value = $currentCell;
+
+            // Use hack with !empty :)
+            // In this case it`s pretty the same as just take value by index
+            // but ignore not exists index warning and set is as died
+            $neighbors = [
+                !empty($currentGeneration[$i][$j - 1]), // Left Neighbor
+                !empty($currentGeneration[$i][$j + 1]), // Right Neighbor
+                !empty($currentGeneration[$i + 1][$j]), // Below Neighbor
+                !empty($currentGeneration[$i - 1][$j]), // Above Neighbor
+                !empty($currentGeneration[$i + 1][$j + 1]), // Below Right Neighbor
+                !empty($currentGeneration[$i + 1][$j - 1]), // Below Left Neighbor
+                !empty($currentGeneration[$i - 1][$j + 1]), // Above Right Neighbor
+                !empty($currentGeneration[$i - 1][$j - 1]) // Above Left Neighbor
+            ];
+	    
+	    // By default array_filter will delete all "false" values
+	    // accrding it we can rely on the getting count should be
+	    // always of live neighbors
+            $countOfLiveNeighbors = count(array_filter($neighbors));
+
+            if ($currentCell) {
+                // Live cell
+                if ($countOfLiveNeighbors > 3 || $countOfLiveNeighbors < 2) {
+                    $value = 0;
+                }
+            } else {
+                // Died cell
+                if ($countOfLiveNeighbors === 3) {
+                    $value = 1;
+                }
+            }
+
+            $nextGeneration[$i][$j] = $value;
+        }
+    }
+
+    return $nextGeneration;
+}
+
+function shouldGameContinue(array $currentGeneration, array $prevGeneration): bool
+{
+    if ($prevGeneration === $currentGeneration) {
+        return false;
+    }
+
+    foreach ($currentGeneration as $row) {
+        if (in_array(1, $row)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function draw(array $field): void
+{
+    $liveMarker = "O";
+    $diedMarker = ".";
+    $height = count($field);
+    
+    for ($i = 0; $i < $height; $i++) {
+        $width = count($field[$i]);
+
+
+        for ($j = 0; $j < $width; $j++) {
+            $marker = empty($field[$i][$j]) ? $diedMarker : $liveMarker;
+
+            if($j === 0){
+                echo '|';
+            }
+
+            echo " {$marker} |";
+        }
+
+        echo "\n";
+    }
+}
+
+echo 'By default "Random" pattern applied.' . "\n";
+
+$useGliderGameFieldPattern = strtolower(readline('Would you like to use "Glider" pattern Y/N? ')) === 'y';
+
+$generationLoopsCount = 0;
+$currentGeneration = null;
+
+// Main Game Loop
+while (true) {
+    if ($generationLoopsCount === 0) {
+        $prevGeneration = [];
+        $currentGeneration = $useGliderGameFieldPattern ?
+            gliderZeroGeneration() :
+            randomZeroGeneration();
+    } else {
+        $prevGeneration = $currentGeneration;
+        $currentGeneration = nextGeneration($currentGeneration);
+    }
+
+    if (!shouldGameContinue($currentGeneration, $prevGeneration)) {
+        echo "\n". '!!!!!!! GAME OVER !!!!!!!' . "\n";
+        exit(0);
+    } else {
+    	system('clear');
+    }
+
+    echo "Generation {$generationLoopsCount}: \n";
+
+    draw($currentGeneration);
+
+    $generationLoopsCount++;
+
+    sleep(1);
+}
