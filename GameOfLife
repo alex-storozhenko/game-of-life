@@ -96,7 +96,7 @@ function nextGeneration($currentGeneration): array
                 !empty($currentGeneration[$i - 1][$j - 1]) // Above Left Neighbor
             ];
 	    
-            // By default array_filter will delete all "false" values
+            // By default, array_filter will delete all "false" values
             // according it we can rely on the getting count should be
             // always of live neighbors
             $countOfLiveNeighbors = count(array_filter($neighbors));
